@@ -1,18 +1,85 @@
 version: '3.8'
 
 services:
+  # 1. Database (The Foundation)
   postgres:
-    image: postgres:16
+    image: postgres:16  # KEPT AS 16 TO MATCH YOUR SETUP
     container_name: ecommerce_db
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
-      # This creates just one default DB, we will create others manually
-      POSTGRES_DB: postgres
+      POSTGRES_DB: postgres 
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ecommerce-net
+
+  # 2. Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      # Connect to 'postgres' service, NOT localhost
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+    depends_on:
+      - postgres
+    networks:
+      - ecommerce-net
+
+  # 3. Product Service
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/product_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+      # Load Cloudinary keys from .env file
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    depends_on:
+      - postgres
+    networks:
+      - ecommerce-net
+
+  # 4. API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      # --- Route 1: Auth Service (Explicit Definition) ---
+      SPRING_CLOUD_GATEWAY_ROUTES_0_ID: auth-service
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://auth-service:8081
+      SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/auth/**
+      
+      # --- Route 2: Product Service (Explicit Definition) ---
+      SPRING_CLOUD_GATEWAY_ROUTES_1_ID: product-service
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://product-service:8082
+      SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/products/**
+      
+      # --- Disable Eureka ---
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    depends_on:
+      - auth-service
+      - product-service
+    networks:
+      - ecommerce-net
+
+networks:
+  ecommerce-net:
+    driver: bridge
 
 volumes:
   postgres_data:

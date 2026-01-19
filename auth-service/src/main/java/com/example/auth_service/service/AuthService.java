@@ -19,15 +19,17 @@ public class AuthService {
     private JwtService jwtService;
 
     public String saveUser(UserCredential credential) {
+        // Encrypt password before saving
         credential.setPassword(passwordEncoder.encode(credential.getPassword()));
         repository.save(credential);
-        return "user added to the system";
+        return "user added to system";
     }
 
     public String generateToken(String username) {
         return jwtService.generateToken(username);
     }
 
+    // --- THIS WAS MISSING ---
     public void validateToken(String token) {
         jwtService.validateToken(token);
     }

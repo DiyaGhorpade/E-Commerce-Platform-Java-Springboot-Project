@@ -26,14 +26,28 @@ public class AuthController {
 
     @PostMapping("/token")
     public String getToken(@RequestBody AuthRequest authRequest) {
-        Authentication authenticate = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
-        );
-        
-        if (authenticate.isAuthenticated()) {
-            return service.generateToken(authRequest.getUsername());
-        } else {
-            throw new RuntimeException("invalid access");
+        System.out.println("--- LOGIN ATTEMPT ---");
+        System.out.println("Username received: " + authRequest.getUsername());
+        System.out.println("Password received: " + authRequest.getPassword());
+
+        try {
+            // This is the line that throws the exception
+            Authentication authenticate = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(authRequest.getUsername(), authRequest.getPassword())
+            );
+
+            if (authenticate.isAuthenticated()) {
+                System.out.println("--- AUTH SUCCESS ---");
+                return service.generateToken(authRequest.getUsername());
+            } else {
+                System.out.println("--- AUTH FAILED: Not Authenticated ---");
+                throw new RuntimeException("invalid access");
+            }
+        } catch (Exception e) {
+            // This will print the REAL error to your Docker logs
+            System.out.println("--- AUTH EXCEPTION ---");
+            e.printStackTrace(); 
+            throw new RuntimeException("Authentication failed: " + e.getMessage());
         }
     }
 

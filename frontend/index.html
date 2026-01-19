@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - Microservices</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div class="nav">
+        <h2>🛍️ E-Commerce Portal</h2>
+        <button class="logout-btn" onclick="auth.logout()">Logout</button>
+    </div>
+
+    <div class="product-grid" id="product-container">
+        <p>Loading products...</p>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // 1. Security Check: Redirect if not logged in
+        if (!auth.isAuthenticated()) {
+            window.location.href = "login.html";
+        }
+
+        // 2. Fetch Products
+        async function loadProducts() {
+            try {
+                // We use the Gateway URL (Port 8080)
+                const response = await fetch(`${API_URL}/products`, {
+                    method: 'GET',
+                    headers: auth.getAuthHeader() // Sends the JWT token
+                });
+
+                if (response.ok) {
+                    const products = await response.json();
+                    renderProducts(products);
+                } else {
+                    console.error("Failed to fetch products");
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            }
+        }
+
+        // 3. Render HTML
+        function renderProducts(products) {
+            const container = document.getElementById('product-container');
+            container.innerHTML = ''; // Clear "Loading..." text
+
+            products.forEach(product => {
+                const card = `
+                    <div class="product-card">
+                        <img src="${product.imageUrl}" alt="${product.name}">
+                        <div class="card-body">
+                            <h3>${product.name}</h3>
+                            <p>${product.description}</p>
+                            <p class="price">$${product.price}</p>
+                            <p>Stock: ${product.stockQuantity}</p>
+                            <button style="width:100%; padding:10px; background:#3498db; color:white; border:none; border-radius:4px; cursor:pointer;">
+                                Add to Cart
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+        }
+
+        // Run on load
+        loadProducts();
+    </script>
+</body>
+</html>
