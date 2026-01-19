@@ -27,12 +27,20 @@ public class AuthConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Allow these endpoints without a token
-                        .requestMatchers("/auth/register", "/auth/token", "/auth/validate").permitAll()
+                        // Public Endpoints
+                        .requestMatchers(
+                                "/auth/register", 
+                                "/auth/token", 
+                                "/auth/validate",
+                                "/v3/api-docs/**", 
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        // Everything else needs a token
                         .anyRequest().authenticated())
                 .build();
     }
-
+    
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
