@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: postgres 
+      POSTGRES_DB: postgres
     ports:
       - "5432:5432"
     volumes:
@@ -62,12 +62,12 @@ services:
       SPRING_CLOUD_GATEWAY_ROUTES_0_ID: auth-service
       SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://auth-service:8081
       SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/auth/**
-      
+
       # --- Route 2: Product Service (Explicit Definition) ---
       SPRING_CLOUD_GATEWAY_ROUTES_1_ID: product-service
       SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://product-service:8082
       SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/products/**
-      
+
       # --- Disable Eureka ---
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"

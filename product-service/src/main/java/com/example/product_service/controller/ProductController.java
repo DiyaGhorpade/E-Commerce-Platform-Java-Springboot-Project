@@ -18,7 +18,7 @@ public class ProductController {
     @Autowired
     private ProductService service;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Product> createProduct(
             @RequestParam("name") String name,
             @RequestParam("description") String description,
