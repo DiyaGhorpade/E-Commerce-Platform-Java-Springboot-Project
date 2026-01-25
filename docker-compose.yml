@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # 1. Database (The Foundation)
+  # 1. PostgreSQL (Auth + Product + Order)
   postgres:
-    image: postgres:16  # KEPT AS 16 TO MATCH YOUR SETUP
+    image: postgres:16
     container_name: ecommerce_db
     environment:
       POSTGRES_USER: admin
@@ -23,7 +23,6 @@ services:
     ports:
       - "8081:8081"
     environment:
-      # Connect to 'postgres' service, NOT localhost
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/auth_db
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: password
@@ -42,7 +41,6 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/product_db
       SPRING_DATASOURCE_USERNAME: admin
       SPRING_DATASOURCE_PASSWORD: password
-      # Load Cloudinary keys from .env file
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
@@ -51,35 +49,52 @@ services:
     networks:
       - ecommerce-net
 
-  # 4. API Gateway
+  # 4. Order Service (Now using PostgreSQL)
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/order_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - ecommerce-net
+
+  # 5. API Gateway
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
     ports:
       - "8080:8080"
     environment:
-      # --- Route 1: Auth Service (Explicit Definition) ---
       SPRING_CLOUD_GATEWAY_ROUTES_0_ID: auth-service
       SPRING_CLOUD_GATEWAY_ROUTES_0_URI: http://auth-service:8081
       SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: Path=/auth/**
 
-      # --- Route 2: Product Service (Explicit Definition) ---
       SPRING_CLOUD_GATEWAY_ROUTES_1_ID: product-service
       SPRING_CLOUD_GATEWAY_ROUTES_1_URI: http://product-service:8082
       SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: Path=/products/**
 
-      # --- Disable Eureka ---
+      SPRING_CLOUD_GATEWAY_ROUTES_2_ID: order-service
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://order-service:8083
+      SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0: Path=/orders/**
+
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"
     depends_on:
       - auth-service
       - product-service
+      - order-service
     networks:
       - ecommerce-net
+
+volumes:
+  postgres_data:
 
 networks:
   ecommerce-net:
     driver: bridge
-
-volumes:
-  postgres_data:
