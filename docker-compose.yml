@@ -64,6 +64,21 @@ services:
     networks:
       - ecommerce-net
 
+  # 4. Inventory Service (Now using PostgreSQL)
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      - postgres
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+    networks:
+      - ecommerce-net
+
   # 5. API Gateway
   api-gateway:
     build: ./api-gateway
