@@ -1,4 +1,4 @@
-package com.example.order_service.client;
+package com.example.order_service.service;
 
 import com.example.order_service.dto.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
-public class InventoryClient {
+public class InventoryClientService {
 
     @Autowired
     private RestTemplate restTemplate;

@@ -1,6 +1,6 @@
 package com.example.order_service.service;
 
-import com.example.order_service.client.InventoryClient;
+import com.example.order_service.service.InventoryClientService;
 import com.example.order_service.dto.*;
 import com.example.order_service.entity.Order;
 import com.example.order_service.entity.OrderItem;
@@ -20,7 +20,7 @@ public class OrderServiceImpl implements OrderService {
     private OrderRepository orderRepository;
 
     @Autowired
-    private InventoryClient inventoryClient;
+    private InventoryClientService InventoryClientService;
 
     @Override
     @Transactional
@@ -52,7 +52,7 @@ public class OrderServiceImpl implements OrderService {
                 .collect(Collectors.toList());
 
         ReservationRequest reservationRequest = new ReservationRequest(savedOrder.getId(), items);
-        ReservationResponse response = inventoryClient.reserveInventory(reservationRequest);
+        ReservationResponse response = InventoryClientService.reserveInventory(reservationRequest);
 
         if (!response.isSuccess()) {
             // Rollback order creation if inventory reservation fails
@@ -89,13 +89,13 @@ public class OrderServiceImpl implements OrderService {
         // Handle inventory based on status changes
         if (status == Order.OrderStatus.SHIPPED && oldStatus != Order.OrderStatus.SHIPPED) {
             // Fulfill order - deduct from inventory
-            ReservationResponse response = inventoryClient.fulfillOrder(id);
+            ReservationResponse response = InventoryClientService.fulfillOrder(id);
             if (!response.isSuccess()) {
                 throw new RuntimeException("Failed to fulfill inventory: " + response.getMessage());
             }
         } else if (status == Order.OrderStatus.CANCELLED) {
             // Release reservation
-            ReservationResponse response = inventoryClient.releaseReservation(id);
+            ReservationResponse response = InventoryClientService.releaseReservation(id);
             if (!response.isSuccess()) {
                 // Log warning but don't fail - order is already cancelled
                 System.err.println("Warning: Failed to release inventory reservation: " +
@@ -114,7 +114,7 @@ public class OrderServiceImpl implements OrderService {
         // Release inventory reservation if order is not completed
         if (order.getStatus() != Order.OrderStatus.DELIVERED &&
                 order.getStatus() != Order.OrderStatus.CANCELLED) {
-            inventoryClient.releaseReservation(id);
+            InventoryClientService.releaseReservation(id);
         }
 
         orderRepository.delete(order);

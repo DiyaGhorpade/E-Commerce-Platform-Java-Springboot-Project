@@ -64,7 +64,7 @@ services:
     networks:
       - ecommerce-net
 
-  # 4. Inventory Service (Now using PostgreSQL)
+  # 5. Inventory Service (Now using PostgreSQL)
   inventory-service:
     build: ./inventory-service
     container_name: inventory-service
@@ -79,7 +79,26 @@ services:
     networks:
       - ecommerce-net
 
-  # 5. API Gateway
+  #6. Payment Service
+  payment-service:
+    build:
+      context: ./payment-service
+      dockerfile: Dockerfile
+    container_name: payment-service
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/payment_db
+      SPRING_DATASOURCE_USERNAME: admin
+      SPRING_DATASOURCE_PASSWORD: password
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+    networks:
+      - ecommerce-net
+    depends_on:
+      - postgres
+
+  # 7. API Gateway
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
@@ -98,12 +117,42 @@ services:
       SPRING_CLOUD_GATEWAY_ROUTES_2_URI: http://order-service:8083
       SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0: Path=/orders/**
 
+      SPRING_CLOUD_GATEWAY_ROUTES_3_ID: inventory-service
+      SPRING_CLOUD_GATEWAY_ROUTES_3_URI: http://inventory-service:8084
+      SPRING_CLOUD_GATEWAY_ROUTES_3_PREDICATES_0: Path=/inventory/**
+
+      SPRING_CLOUD_GATEWAY_ROUTES_4_ID: payment-service
+      SPRING_CLOUD_GATEWAY_ROUTES_4_URI: http://payment-service:8085
+      SPRING_CLOUD_GATEWAY_ROUTES_4_PREDICATES_0: Path=/api/payments/**
+
       EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
       EUREKA_CLIENT_FETCH_REGISTRY: "false"
     depends_on:
       - auth-service
       - product-service
       - order-service
+    networks:
+      - ecommerce-net
+
+  # 8. Message Broker (Kafka KRaft Mode)
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:29092,CONTROLLER://kafka:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
     networks:
       - ecommerce-net
 
